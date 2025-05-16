@@ -26,5 +26,6 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/skill-seeker.git
+   git clone https://github.com/jingyang21/skill-seeker.git
+   
    cd skill-seeker
