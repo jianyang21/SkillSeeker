@@ -1,71 +1,73 @@
 import streamlit as st
-from pypdf import PdfReader
-import firebase_admin
-from firebase_admin import credentials, firestore
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import CharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+from langchain_community.llms import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain.chains import RetrievalQA
+from langchain.schema import Document
 import os
 
-# Firebase credentials file path
-FIREBASE_CRED_PATH = "firebase_credentials.json"  # Change if needed
+st.set_page_config(page_title="PDF Q&A with RAG")
+st.title("PDF Q&A with LangChain RAG")
 
-# ---- Streamlit UI ----
-st.set_page_config(page_title="SkillSeeker")
-st.title("SkillSeeker")
-st.header("Analyzing Candidate Resume and Skills")
+# Session state to store QA chain
+if "qa_chain" not in st.session_state:
+    st.session_state.qa_chain = None
+if "pdf_ready" not in st.session_state:
+    st.session_state.pdf_ready = False
 
-# Name input
-st.subheader("Write your name")
-name = st.text_input("Enter your name here")
+# Upload PDF
+uploaded_file = st.file_uploader("Upload a PDF", type="pdf")
 
-# Role input
-st.subheader("Enter the role you are applying for")
-role = st.text_input("Enter your desired role")
+if uploaded_file and not st.session_state.pdf_ready:
+    # Save uploaded file temporarily
+    temp_path = "temp_uploaded.pdf"
+    with open(temp_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-# Upload Resume
-st.subheader("Upload your resume")
-uploaded_resume_file = st.file_uploader("Resume (PDF only)", type="pdf")
+    # Load PDF
+    loader = PyPDFLoader(temp_path)
+    data = loader.load()
 
-# Initialize Firebase only once
-if not firebase_admin._apps:
-    if os.path.exists(FIREBASE_CRED_PATH):
-        cred = credentials.Certificate(FIREBASE_CRED_PATH)
-        firebase_admin.initialize_app(cred)
-    else:
-        st.error(f"Firebase credentials file not found at: {FIREBASE_CRED_PATH}")
+    # Split into chunks
+    text = "\n".join([d.page_content for d in data])
+    splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    chunks = splitter.split_text(text)
+    docs = [Document(page_content=chunk) for chunk in chunks]
 
-# Firestore client
-resume_db = firestore.client()
+    # Create embeddings & vector store
+    embeddings = OllamaEmbeddings(model="llama3")
+    vectorstore = FAISS.from_documents(docs, embeddings)
 
-# Process Resume
-if uploaded_resume_file is not None:
-    st.success("Resume uploaded successfully!")
-    reader = PdfReader(uploaded_resume_file)
-    resume_text = "".join([page.extract_text() + "\n" for page in reader.pages])
-    
-    # Store data in Firestore
-    if name and role:
-        doc_ref = resume_db.collection("ExtractedContent").document(name)
-        doc_ref.set({
-            "name": name,
-            "role_applied": role,
-            "resume_text": resume_text
-        })
-        st.success("Resume data saved to Firebase!")
-    else:
-        st.warning("Please enter both name and role to save data.")
+    # LLaMA model
+    llm = Ollama(model="llama3")
 
-    # Display extracted text
-    st.subheader("Extracted Resume Text")
-    st.write(resume_text)
-else:
-    st.info("Please upload a resume.")
+    # Retrieval QA
+    st.session_state.qa_chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=vectorstore.as_retriever(),
+        return_source_documents=True
+    )
 
-# Upload JD
-st.subheader("Upload the Job Description (JD)")
-uploaded_JD_Resume = st.file_uploader("Job Description (PDF only)", type="pdf", key="jd")
+    st.session_state.pdf_ready = True
+    st.success("PDF processed. You can now ask questions.")
 
-if uploaded_JD_Resume is not None:
-    st.success("JD uploaded successfully!")
-else:
-    st.info("Please upload a JD.")
+# If PDF is processed, allow multiple questions
+if st.session_state.pdf_ready and st.session_state.qa_chain:
+    query = st.text_input("Ask a question about the PDF")
 
+    if query:
+        with st.spinner("Thinking..."):
+            result = st.session_state.qa_chain.invoke({"query": query})
+
+        # Show result
+        st.subheader("Answer")
+        st.write(result["result"])
+
+        # Show sources
+        with st.expander("Source Chunks"):
+            for i, doc in enumerate(result["source_documents"]):
+                st.markdown(f"**Chunk {i+1}:**\n{doc.page_content}")
 
