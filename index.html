@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Q&A with LangChain</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>PDF Q&A</h1>
+    <div class="upload-section">
+        <form id="uploadForm">
+            <input type="file" name="pdf" accept="application/pdf" required>
+            <button type="submit">Upload PDF</button>
+        </form>
+        <p id="uploadStatus"></p>
+    </div>
+
+    <div class="qa-section">
+        <input type="text" id="questionInput" placeholder="Ask a question..." />
+        <button id="askBtn">Ask</button>
+        <p><strong>Answer:</strong> <span id="answer"></span></p>
+        <h3>Sources:</h3>
+        <div id="sources"></div>
+    </div>
+
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", function(e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            fetch("/upload", { method: "POST", body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("uploadStatus").textContent = data.message || data.error;
+                });
+        });
+
+        document.getElementById("askBtn").addEventListener("click", function() {
+            let question = document.getElementById("questionInput").value;
+            fetch("/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById("answer").textContent = data.error;
+                    return;
+                }
+                document.getElementById("answer").textContent = data.answer;
+                let srcContainer = document.getElementById("sources");
+                srcContainer.innerHTML = "";
+                data.sources.forEach(src => {
+                    let p = document.createElement("p");
+                    p.textContent = src;
+                    srcContainer.appendChild(p);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
