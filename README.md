@@ -35,6 +35,20 @@ Uses the LLaMA 3 model through Ollama for embeddings and answering questions.
 
 ## 2. Flask + HTML/CSS Version
 
+
+## Flask App Folder Structure
+
+pdf_rag_app/
+│
+├── app.py 
+│
+├── templates/ 
+│ └── index.html 
+│
+├── static/ 
+   └── style.css
+
+
 ### Features
 - Simple HTML/CSS user interface
 - Upload a PDF
