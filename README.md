@@ -1,4 +1,4 @@
-# SKillSeeker
+# SkillSeeker
 
 This is a Streamlit web application that allows you to upload a PDF file, process it using LangChain, FAISS, and Ollama, and then ask questions about its content. It uses Retrieval-Augmented Generation (RAG) to provide accurate answers based on the document.
 
