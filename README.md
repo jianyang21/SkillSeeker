@@ -1,23 +1,48 @@
-# Skill Seeker 
+# SKillSeeker
 
-**Skill Seeker** is an AI-powered Streamlit application that helps job seekers refine their resumes. It uses a T5 language model to intelligently extract and summarize key skills and information from resumes, stores the results securely in Firebase, and sends the corrected content via email.
+This is a Streamlit web application that allows you to upload a PDF file, process it using LangChain, FAISS, and Ollama, and then ask questions about its content. It uses Retrieval-Augmented Generation (RAG) to provide accurate answers based on the document.
 
-##  Features
+## Features
+- Upload a PDF file
+- Process the document once and reuse it for multiple questions
+- Uses FAISS for vector storage and retrieval
+- Displays relevant source text for each answer
+- Ask unlimited questions until you close the app
 
--  Upload resumes in PDF format
--  Extract and summarize resume content using a T5 LLM
--  Identify key skills and areas of improvement
--  Grammar correction and content enhancement
--  Store data securely using Firebase
--  Send results to the user via email
--  Minimal, responsive UI built with Streamlit
+## LLM Model
+This application uses the LLaMA 3 model through Ollama for both embeddings and answering questions.
 
-##  Tech Stack
+## Requirements
+- Python 3.10 or later
+- Streamlit
+- LangChain with langchain_community modules
+- FAISS
+- Ollama installed locally and running
+- LLaMA 3 model pulled in Ollama
 
-- **Frontend**: [Streamlit](https://streamlit.io/)
-- **Backend**:
-  - [T5 Language Model](https://huggingface.co/transformers/model_doc/t5.html) (via HuggingFace Transformers)
-  - [Firebase](https://firebase.google.com/) (for real-time database/storage)
-  - [smtplib](https://docs.python.org/3/library/smtplib.html) for email integration
-- **Libraries**:
-  - `transformers`, `firebase-admin`, `python-docx`, `PyMuPDF`, etc.
+## Installation
+
+1. Install dependencies  
+   `pip install streamlit langchain faiss-cpu pypdf langchain-community`
+
+2. Install and set up Ollama  
+   Download from https://ollama.ai/download  
+   Pull the LLaMA 3 model:  
+   `ollama pull llama3`
+
+## Running the App
+Run:  
+`streamlit run app.py`  
+
+Open your browser at http://localhost:8501.
+
+## How It Works
+1. Upload a PDF file
+2. The file is read, split into chunks, and embedded using Ollama embeddings
+3. The embeddings are stored in a FAISS vector store
+4. When you ask a question, the most relevant chunks are retrieved and passed to the LLaMA 3 model
+5. The model returns an answer along with the relevant source text
+
+## Notes
+- Ollama must be running in the background
+- To change the model, update the `Ollama(model="...")` call in the code
