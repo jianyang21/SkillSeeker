@@ -38,15 +38,6 @@ Uses the LLaMA 3 model through Ollama for embeddings and answering questions.
 
 ## Flask App Folder Structure
 
-pdf_rag_app/
-│
-├── app.py 
-│
-├── templates/ 
-│ └── index.html 
-│
-├── static/ 
-   └── style.css
 
 
 ### Features
